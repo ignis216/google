@@ -1,0 +1,906 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Google Stimulus Interactive</title>
+<style>
+  :root {
+    --text: #202124;
+    --sub: #5f6368;
+    --line: #dadce0;
+    --blue: #1a73e8;
+    --link: #1a0dab;
+    --chip: #eef0f1;
+    --font: Roboto, "Noto Sans KR", Arial, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    background: #fff;
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  button, input { font-family: inherit; }
+  button { border: 0; background: transparent; cursor: pointer; padding: 0; color: inherit; }
+  svg { display: block; }
+
+  .screen {
+    display: none;
+    min-height: 100vh;
+    overflow: visible;
+  }
+  .screen.active { display: block; }
+
+  .g span { font-family: Arial, sans-serif; font-weight: 400; }
+  .b { color: #4285f4; }
+  .r { color: #ea4335; }
+  .y { color: #fbbc05; }
+  .gn { color: #34a853; }
+
+  .icon {
+    width: 24px;
+    height: 24px;
+    color: #5f6368;
+    flex: 0 0 auto;
+  }
+
+  .search-term-label {
+    position: absolute;
+    left: 18px;
+    top: 16px;
+    z-index: 50;
+    color: #5f6368;
+    font-size: 13px;
+    line-height: 1.4;
+    background: rgba(255,255,255,.92);
+    border: 1px solid #e0e0e0;
+    border-radius: 16px;
+    padding: 7px 12px;
+    box-shadow: 0 1px 3px rgba(60,64,67,.12);
+  }
+
+  .search-term-label strong {
+    color: #202124;
+    font-weight: 500;
+  }
+
+  /* 연결 불가 팝업 */
+  .popup {
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    min-width: 260px;
+    padding: 18px 22px;
+    border-radius: 12px;
+    background: #fff;
+    color: #202124;
+    box-shadow: 0 8px 28px rgba(0,0,0,.22);
+    border: 1px solid #e0e0e0;
+    text-align: center;
+    font-size: 15px;
+    z-index: 9999;
+    display: none;
+  }
+
+  .popup.show { display: block; }
+
+  /* 홈 화면 */
+  .home-top {
+    position: absolute;
+    top: 13px;
+    right: 16px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    color: #1f1f1f;
+    font-size: 14px;
+  }
+
+  .home-top a {
+    color: #1f1f1f;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .apps {
+    width: 24px;
+    height: 24px;
+    display: grid;
+    grid-template-columns: repeat(3, 4px);
+    grid-auto-rows: 4px;
+    gap: 3px;
+    align-content: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+
+  .apps span {
+    width: 4px;
+    height: 4px;
+    background: #5f6368;
+    border-radius: 50%;
+  }
+
+  .login {
+    height: 40px;
+    padding: 0 24px;
+    border-radius: 22px;
+    background: #0b57d0;
+    color: #fff;
+    font-size: 16px;
+    font-weight: 500;
+  }
+
+  .home-main {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 250px 0 80px;
+  }
+
+  .home-logo {
+    font-size: 80px;
+    line-height: 1;
+    letter-spacing: -4.5px;
+    margin-bottom: 44px;
+    user-select: none;
+  }
+
+  .home-search {
+    width: 746px;
+    height: 52px;
+    border: 1px solid #dfe1e5;
+    border-radius: 28px;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 0 22px;
+    box-shadow: 0 1px 6px rgba(32, 33, 36, .22);
+  }
+
+  .home-search input {
+    flex: 1;
+    border: 0;
+    outline: 0;
+    font-size: 17px;
+    color: #3c4043;
+    min-width: 0;
+    font-weight: 400;
+  }
+
+  .home-search input::placeholder {
+    color: #5f6368;
+    opacity: 1;
+  }
+
+  .home-search-wrap {
+    width: 746px;
+  }
+
+  .did-you-mean {
+    display: none;
+    margin-top: 13px;
+    padding-left: 22px;
+    color: #5f6368;
+    font-size: 15px;
+    line-height: 1.4;
+  }
+
+  .did-you-mean button {
+    color: #1a0dab;
+    font-size: 15px;
+    text-decoration: none;
+  }
+
+  .did-you-mean button:hover {
+    text-decoration: underline;
+  }
+
+  .customize {
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    height: 34px;
+    border-radius: 18px;
+    background: #d8eaff;
+    color: #174ea6;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 14px;
+    font-size: 13px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.16);
+  }
+
+  /* 검색 결과 상단 */
+  .header {
+    height: 132px;
+    border-bottom: 1px solid #e0e0e0;
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    padding: 24px 0 0 30px;
+    background: #fff;
+  }
+
+  .mini-logo {
+    font-size: 30px;
+    line-height: 48px;
+    letter-spacing: -1.7px;
+    margin-right: 35px;
+    white-space: nowrap;
+    user-select: none;
+  }
+
+  .searchbar {
+    width: 830px;
+    height: 48px;
+    border: 1px solid #dfe1e5;
+    border-radius: 24px;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    padding: 0 18px 0 22px;
+    box-shadow: 0 1px 6px rgba(32, 33, 36, .20);
+  }
+
+  .searchbar input {
+    flex: 1;
+    border: 0;
+    outline: 0;
+    font-size: 16px;
+    color: #202124;
+    min-width: 0;
+    font-weight: 400;
+  }
+
+  .tabs {
+    position: absolute;
+    left: 180px;
+    bottom: 0;
+    height: 46px;
+    display: flex;
+    align-items: flex-end;
+    gap: 25px;
+    color: #5f6368;
+    font-size: 14px;
+    white-space: nowrap;
+  }
+
+  .tab {
+    height: 43px;
+    display: flex;
+    align-items: center;
+    position: relative;
+    cursor: pointer;
+  }
+
+  .tab.active {
+    color: #202124;
+  }
+
+  .tab.active::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    margin: auto;
+    width: 18px;
+    height: 3px;
+    background: #202124;
+    border-radius: 3px 3px 0 0;
+  }
+
+  /* 검색 결과 본문 */
+  .layout {
+    width: 980px;
+    margin-left: 180px;
+    padding-top: 34px;
+  }
+
+  .ai-card {
+    width: 980px;
+    padding-bottom: 22px;
+    border-bottom: 1px solid #00000018;
+  }
+
+  .ai-head {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    color: #1f3b61;
+    margin-bottom: 18px;
+    font-size: 15px;
+  }
+
+  .spark {
+    font-size: 26px;
+    color: #4285f4;
+    line-height: 1;
+  }
+
+  .ai-card p {
+    margin: 0 0 14px;
+    line-height: 1.55;
+    font-size: 16px;
+    font-weight: 600;
+    word-break: keep-all;
+  }
+
+  .ai-card .lead {
+    font-size: 17px;
+    font-weight: 700;
+  }
+
+  .hl {
+    background: #dbeafe;
+    border-radius: 3px;
+  }
+
+  .ai-card h3 {
+    margin: 16px 0 12px;
+    font-size: 18px;
+    line-height: 1.35;
+  }
+
+  .ai-card ul {
+    margin: 0 0 0 22px;
+    padding: 0;
+    font-size: 16px;
+    line-height: 1.75;
+    font-weight: 600;
+    word-break: keep-all;
+  }
+
+  .ai-card li { margin: 7px 0; }
+
+  .organic-list {
+    margin-top: 50px;
+    width: 980px;
+  }
+
+  .organic {
+    max-width: 720px;
+    margin: 0 0 30px;
+    cursor: pointer;
+  }
+
+  .site {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 13px;
+    color: #3c4043;
+    margin-bottom: 8px;
+    line-height: 1.25;
+  }
+
+  .fav {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: #e8f0fe;
+    color: #1a73e8;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font: 13px Arial, sans-serif;
+    flex: 0 0 auto;
+  }
+
+  .organic h2 {
+    font-size: 20px;
+    font-weight: 400;
+    color: var(--link);
+    margin: 0 0 7px;
+  }
+
+  .organic p {
+    margin: 0;
+    color: #3c4043;
+    line-height: 1.45;
+    font-size: 14px;
+    word-break: keep-all;
+  }
+
+  .read {
+    color: #3c4043;
+    text-decoration: underline;
+    margin-left: 7px;
+  }
+
+  .expanded .ai-card {
+    border-bottom: 0;
+    padding-bottom: 10px;
+  }
+  .ai-foot {
+    margin-top: 26px;
+    color: #5f6368;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    width: 980px;
+  }
+
+  .ai-foot u {
+    cursor: pointer;
+  }
+
+  .ask {
+    margin-top: 40px;
+    width: 980px;
+    min-height: 150px;
+    border: 1px solid #b3bac5;
+    border-radius: 28px;
+    color: #667085;
+    padding: 40px;
+    font-size: 18px;
+    line-height: 1.7;
+    display: flex;
+    justify-content: flex-start;
+    align-items: flex-start;
+    cursor: pointer;
+  }
+
+  @media (max-width: 1100px) {
+    .layout { width: calc(100vw - 220px); }
+    .ai-card, .ai-foot { width: 100%; }
+  }
+  .finish-button {
+    display: none;
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    z-index: 2147483647;
+    height: 44px;
+    padding: 0 22px;
+    border-radius: 22px;
+    background: #1a7f42;
+    color: white;
+    font-size: 15px;
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,.2);
+  }
+
+  .finish-button.show {
+    display: block;
+  }
+
+
+  .tab .chev {
+    display: inline-block;
+    margin-left: 3px;
+    font-size: 11px;
+    line-height: 1;
+    transform: translateY(1px);
+    color: #5f6368;
+  }
+
+  #collapsed.loading-only .layout {
+    display: none;
+  }
+
+  .ai-card.ai-fade-start {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  .ai-card.ai-fade-in {
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 800ms ease, transform 800ms ease;
+  }
+
+
+  .initial-loader {
+    position: fixed;
+    inset: 0;
+    z-index: 2147483646;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 220ms ease;
+  }
+  .initial-loader.hide {
+    opacity: 0;
+    pointer-events: none;
+  }
+  .initial-loader-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 22px;
+  }
+  .initial-loader-logo {
+    font-size: 46px;
+    line-height: 1;
+    letter-spacing: -2.6px;
+    user-select: none;
+  }
+  .initial-loader-bar {
+    width: 160px;
+    height: 3px;
+    border-radius: 3px;
+    background: #e8eaed;
+    overflow: hidden;
+  }
+  .initial-loader-bar::after {
+    content: "";
+    display: block;
+    width: 56px;
+    height: 100%;
+    border-radius: 3px;
+    background: #4285f4;
+    animation: initialLoaderMove 760ms ease-in-out infinite;
+  }
+  @keyframes initialLoaderMove {
+    0% { transform: translateX(-60px); }
+    100% { transform: translateX(170px); }
+  }
+
+
+
+  /* refinements: Google-like toolbar chevrons and bottom ask card spacing */
+  .tab .chev {
+    display: inline-block;
+    margin-left: 6px;
+    font-size: 8px;
+    line-height: 1;
+    transform: translateY(-1px);
+    color: #5f6368;
+  }
+
+  .expanded .layout {
+    padding-bottom: 72px;
+  }
+
+  .ask {
+    height: 112px;
+    margin-top: 38px;
+    margin-bottom: 52px;
+    padding: 22px 24px;
+    border-radius: 26px;
+  }
+
+
+  #expanded {
+    padding-bottom: 20px;
+  }
+
+  #expanded .layout {
+    padding-bottom: 96px;
+  }
+
+  .ask {
+    min-height: 128px;
+  }
+
+
+  /* AI Overview 본문 블록 간격 조정 */
+  .ai-card > .lead + .lead {
+    margin-top: 22px;
+  }
+
+  .ai-card h3 {
+    margin-top: 30px;
+    margin-bottom: 14px;
+  }
+
+  .ai-card ul {
+    margin-bottom: 28px;
+  }
+
+  .ai-card li {
+    margin: 11px 0;
+  }
+
+  .ai-card > p:last-child {
+    margin-top: 30px !important;
+  }
+
+</style>
+<style>
+
+/* Mobile layout for the poster demonstration */
+@media (max-width: 800px) {
+ html, body {width:100%; max-width:100%; overflow-x:hidden;}
+ .home-top {gap:10px; font-size:12px; right:10px;}
+ .home-top .login {padding:0 15px; font-size:13px; height:36px;}
+ .home-main {height:100dvh; min-height:470px; padding:clamp(155px, 29vh, 245px) 14px 70px;}
+ .home-logo {font-size:clamp(56px, 16vw, 80px); margin-bottom:34px;}
+ .home-search-wrap, .home-search {width:100% !important; max-width:620px;}
+ .home-search {min-height:50px; height:auto; padding:9px 16px; gap:9px;}
+ .home-search input {font-size:16px;}
+ .did-you-mean {padding-left:12px;}
+ .header {height:auto; min-height:118px; width:100%; padding:14px 12px 0; align-items:center; gap:9px; flex-wrap:wrap;}
+ .header .mini-logo {margin-right:0; font-size:23px; line-height:35px; letter-spacing:-1.2px;}
+ .header .searchbar {width:auto!important; min-width:0; flex:1; padding:0 11px; gap:8px; height:42px;}
+ .header .searchbar input {font-size:14px; width:100%;}
+ .header .tabs {position:relative; left:auto; bottom:auto; order:3; flex-basis:100%; height:43px; gap:19px; overflow-x:auto; overflow-y:hidden; padding:0 0 0 1px; align-items:end; scrollbar-width:thin;}
+ .header .tabs .tab {flex-shrink:0; font-size:13px;}
+ .layout {width:100%!important; margin-left:0!important; padding:24px 16px 90px!important;}
+ .ai-card, .ai-foot, .organic-list, .ask {width:100%!important; max-width:100%!important;}
+ .ai-card p, .ai-card li {font-size:15px; line-height:1.7;}
+ .ai-card .lead {font-size:16px;}
+ .ai-card h3 {font-size:17px;}
+ .ask {padding:24px; min-height:100px;}
+ .search-term-label {font-size:12px; left:12px; top:70px; max-width:calc(100% - 24px);}
+ .organic {max-width:100%;}
+ .customize {font-size:11px; padding:0 11px;}
+}
+
+
+/* Presentation navigation: added separately, not part of original experiments */
+.poster-demo-back {position:fixed; left:12px; bottom:14px; z-index:9500; background:#17324f; color:#fff;
+ padding:11px 16px; border-radius:999px; box-shadow:0 2px 12px #0003; font:600 13px/1.3 Arial,'Noto Sans KR',sans-serif;
+ text-decoration:none; display:block; max-width:calc(100% - 24px);}
+.poster-demo-back:hover,.poster-demo-back:focus {background:#294b6e; color:#fff;}
+@media (max-width:800px) { .poster-demo-back {left:10px; bottom:10px; font-size:12px; padding:10px 13px;} }
+
+</style>
+</head>
+
+<body>
+<div id="popup" class="popup">연결할 수 없습니다</div>
+<div id="initialLoader" class="initial-loader">
+  <div class="initial-loader-inner">
+    <div class="g initial-loader-logo">
+      <span class="b">G</span><span class="r">o</span><span class="y">o</span><span class="b">g</span><span class="gn">l</span><span class="r">e</span>
+    </div>
+    <div class="initial-loader-bar"></div>
+  </div>
+</div>
+
+
+<section id="home" class="screen active">
+  <div class="search-term-label">검색어: <strong>왁뿌볼</strong></div>
+  <div class="home-top">
+    <a data-popup data-click="home_gmail">Gmail</a>
+    <a data-popup data-click="home_images">이미지</a>
+    <div class="apps" data-popup data-click="home_apps" aria-label="Google apps">
+      <span></span><span></span><span></span>
+      <span></span><span></span><span></span>
+      <span></span><span></span><span></span>
+    </div>
+    <button class="login" data-popup data-click="home_login">로그인</button>
+  </div>
+
+  <main class="home-main">
+    <div class="g home-logo">
+      <span class="b">G</span><span class="r">o</span><span class="y">o</span><span class="b">g</span><span class="gn">l</span><span class="r">e</span>
+    </div>
+
+    <div class="home-search-wrap">
+      <form class="home-search" id="homeForm">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path fill="currentColor" d="M9.5 3a6.5 6.5 0 0 1 5.17 10.44l4.45 4.44-1.42 1.42-4.44-4.45A6.5 6.5 0 1 1 9.5 3m0 2a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9z"/>
+        </svg>
+        <input id="homeQuery" type="text" placeholder="Google 검색 또는 URL 입력" autocomplete="off" />
+      </form>
+
+      <div id="suggestion" class="did-you-mean">
+        Did you mean <button type="button" id="suggestionButton">왁뿌볼</button>?
+      </div>
+    </div>
+  </main>
+
+  <button class="customize" data-popup data-click="home_customize">✎ Chrome 맞춤설정</button>
+</section>
+
+
+<section id="loading" class="screen">
+  <header class="header">
+    <div class="g mini-logo">
+      <span class="b">G</span><span class="r">o</span><span class="y">o</span><span class="b">g</span><span class="gn">l</span><span class="r">e</span>
+    </div>
+
+    <div class="searchbar">
+      <input type="text" value="왁뿌볼" disabled />
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+        <path fill="currentColor" d="M9.5 3a6.5 6.5 0 0 1 5.17 10.44l4.45 4.44-1.42 1.42-4.44-4.45A6.5 6.5 0 1 1 9.5 3m0 2a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9z"/>
+      </svg>
+    </div>
+
+    <nav class="tabs">
+      <div class="tab">AI Mode</div>
+      <div class="tab active">All</div>
+      <div class="tab">Images</div>
+      <div class="tab">Videos</div>
+      <div class="tab">Shopping</div>
+      <div class="tab">Short videos</div>
+      <div class="tab">News</div>
+      <div class="tab">More<span class="chev">▼</span></div>
+      <div class="tab">Tools<span class="chev">▼</span></div>
+    </nav>
+  </header>
+</section>
+
+<section id="collapsed" class="screen">
+  <header class="header">
+    <div class="g mini-logo" data-popup data-click="google_logo">
+      <span class="b">G</span><span class="r">o</span><span class="y">o</span><span class="b">g</span><span class="gn">l</span><span class="r">e</span>
+    </div>
+
+    <form class="searchbar" id="resultForm1">
+      <input id="resultQuery1" type="text" value="왁뿌볼" />
+      <button type="button" class="icon" data-click="result_search_icon" aria-label="search">
+        <svg viewBox="0 0 24 24">
+          <path fill="currentColor" d="M9.5 3a6.5 6.5 0 0 1 5.17 10.44l4.45 4.44-1.42 1.42-4.44-4.45A6.5 6.5 0 1 1 9.5 3m0 2a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9z"/>
+        </svg>
+      </button>
+    </form>
+
+    <nav class="tabs">
+      <div class="tab" data-popup data-click="tab_ai_mode">AI Mode</div>
+      <div class="tab active">All</div>
+      <div class="tab" data-popup data-click="tab_images">Images</div>
+      <div class="tab" data-popup data-click="tab_videos">Videos</div>
+      <div class="tab" data-popup data-click="tab_shopping">Shopping</div>
+      <div class="tab" data-popup data-click="tab_short_videos">Short videos</div>
+      <div class="tab" data-popup data-click="tab_news">News</div>
+      <div class="tab" data-popup data-click="tab_more">More<span class="chev">▼</span></div>
+      <div class="tab" data-popup data-click="tab_tools">Tools<span class="chev">▼</span></div>
+    </nav>
+  </header>
+
+  <main class="layout">
+    <section class="ai-card">
+      <div class="ai-head"><span class="spark">✦</span><span>AI Overview</span></div>
+
+      <p class="lead">왁뿌볼은 ‘왁스 뿌시기 볼(Wax Breaking Ball)’의 줄임말로, 점토와 같이 말랑한 소재의 공 표면을 얇은 왁스층으로 감싸고 있는 촉감 장난감입니다. 손으로 누르면 겉의 왁스가 갈라지면서 특유의 촉감과 소리가 발생하며, 사용자는 이를 반복해서 누르거나 변형하며 감각적 즐거움을 경험할 수 있습니다.</p>
+      <p class="lead">왁뿌볼을 통한 반복적인 손 움직임과 손바닥의 압력 자극은 성장 관련 신경 경로를 활성화해 성장호르몬 분비와 성장판 활동을 촉진하고 키 성장에 도움이 될 수 있습니다.</p>
+
+      <h3>1. 왁뿌볼의 주요 효과</h3>
+      <ul>
+        <li>손바닥의 압력 자극을 통해 성장 관련 신경 경로를 활성화함.</li>
+        <li>반복적인 손의 촉각 자극으로 성장호르몬의 분비를 촉진함.</li>
+        <li>성장판의 활동을 높여 청소년기 학생들의 신장 증가에 긍정적인 영향을 줌.</li>
+      </ul>
+    </section>
+  </main>
+</section>
+
+
+
+<section id="expanded" class="screen expanded">
+  <header class="header">
+    <div class="g mini-logo" data-popup data-click="google_logo">
+      <span class="b">G</span><span class="r">o</span><span class="y">o</span><span class="b">g</span><span class="gn">l</span><span class="r">e</span>
+    </div>
+
+    <form class="searchbar" id="resultForm2">
+      <input id="resultQuery2" type="text" value="왁뿌볼" />
+      <button type="button" class="icon" data-click="result_search_icon" aria-label="search">
+        <svg viewBox="0 0 24 24">
+          <path fill="currentColor" d="M9.5 3a6.5 6.5 0 0 1 5.17 10.44l4.45 4.44-1.42 1.42-4.44-4.45A6.5 6.5 0 1 1 9.5 3m0 2a4.5 4.5 0 0 0 0 9 4.5 4.5 0 0 0 0-9z"/>
+        </svg>
+      </button>
+    </form>
+
+    <nav class="tabs">
+      <div class="tab" data-popup data-click="tab_ai_mode">AI Mode</div>
+      <div class="tab active">All</div>
+      <div class="tab" data-popup data-click="tab_images">Images</div>
+      <div class="tab" data-popup data-click="tab_videos">Videos</div>
+      <div class="tab" data-popup data-click="tab_shopping">Shopping</div>
+      <div class="tab" data-popup data-click="tab_short_videos">Short videos</div>
+      <div class="tab" data-popup data-click="tab_news">News</div>
+      <div class="tab" data-popup data-click="tab_more">More<span class="chev">⌄</span></div>
+      <div class="tab" data-popup data-click="tab_tools">Tools<span class="chev">⌄</span></div>
+    </nav>
+  </header>
+
+  <main class="layout">
+    <section class="ai-card">
+      <div class="ai-head"><span class="spark">✦</span><span>AI Overview</span></div>
+
+      <p class="lead">왁뿌볼은 ‘왁스 뿌시기 볼(Wax Breaking Ball)’의 줄임말로, 점토와 같이 말랑한 소재의 공 표면을 얇은 왁스층으로 감싸고 있는 촉감 장난감입니다. 손으로 누르면 겉의 왁스가 갈라지면서 특유의 촉감과 소리가 발생하며, 사용자는 이를 반복해서 누르거나 변형하며 감각적 즐거움을 경험할 수 있습니다.</p>
+      <p class="lead">왁뿌볼을 통한 반복적인 손 움직임과 손바닥의 압력 자극은 성장 관련 신경 경로를 활성화해 성장호르몬 분비와 성장판 활동을 촉진하고 키 성장에 도움이 될 수 있습니다.</p>
+
+      <h3>1. 왁뿌볼의 주요 효과</h3>
+      <ul>
+        <li>손바닥의 압력 자극을 통해 성장 관련 신경 경로를 활성화함.</li>
+        <li>반복적인 손의 촉각 자극으로 성장호르몬의 분비를 촉진함.</li>
+        <li>성장판의 활동을 높여 청소년기 학생들의 신장 증가에 긍정적인 영향을 줌.</li>
+      </ul>
+
+      <h3>2. 왜 이러한 효과가 나타나는가?</h3>
+      <ul>
+        <li>손바닥의 특정 부위에 반복적인 압력과 촉각 자극이 전달됨.</li>
+        <li>손에서 반복적으로 발생한 자극이 신경계를 통해 전신의 성장 신호로 전달됨.</li>
+        <li>전달된 성장 신호가 성장호르몬 분비와 뼈의 성장 활동을 촉진시킴.</li>
+      </ul>
+
+      <h3>3. 활용 방법 및 주의점</h3>
+      <ul>
+        <li>성장기 청소년들의 키 성장 관리를 위한 활동으로도 활용 가능함.</li>
+        <li>매일 일정 시간 반복하여 사용하는 보조 활동으로 사용할 수 있음.</li>
+        <li>효과에는 개인차가 있으며 규칙적인 휴식과 함께 적정한 시간 사용하는 것이 적절함.</li>
+      </ul>
+
+      <p style="font-weight:700; margin-top:22px;">왁뿌볼은 반복적인 손바닥 자극을 통해 성장호르몬 분비와 성장판의 활동을 함께 촉진하여 성장기 청소년의 키의 성장에 도움이 될 수 있는 감각 활동입니다.</p>
+    </section>
+
+    <div class="ai-foot">
+      <span>AI responses may include mistakes. <u data-popup>Learn more</u></span>
+    </div>
+
+    <div class="ask" data-popup><span>Ask anything</span></div>
+
+  </main>
+</section>
+
+
+
+
+<a class="poster-demo-back" href="../../../experiment2/google/index.html" aria-label="자극 선택 페이지로 돌아가기">← 자극 목록</a>
+<script>
+(function () {
+'use strict';
+const targetTerm = "왁뿌볼";
+const home = document.getElementById('home');
+const homeInput = document.getElementById('homeQuery');
+const suggestion = document.getElementById('suggestion');
+const popup = document.getElementById('popup');
+let popupTimer=null, resultTimer=null;
+function normalize(value) {return String(value || '').trim().replace(/\s+/g, ' ');}
+function showScreen(id) {
+ document.querySelectorAll('.screen').forEach(screen=>screen.classList.remove('active'));
+ const target=document.getElementById(id);
+ if (target) target.classList.add('active');
+ window.scrollTo(0,0);
+}
+function showResults() {
+ document.getElementById('resultQuery1').value = targetTerm;
+ document.getElementById('resultQuery2').value = targetTerm;
+ suggestion.style.display='none';
+ showScreen('loading');
+ if (resultTimer) clearTimeout(resultTimer);
+ resultTimer=setTimeout(() => {
+  showScreen('expanded');
+  const card=document.querySelector('#expanded .ai-card');
+  if (card) {card.classList.add('ai-fade-start');requestAnimationFrame(()=>{
+    card.classList.add('ai-fade-in');card.classList.remove('ai-fade-start');
+  });}
+ }, 850);
+}
+function search(value) {
+ if (normalize(value) !== targetTerm) {suggestion.style.display='block'; return;}
+ homeInput.value=targetTerm; showResults();
+}
+document.getElementById('homeForm').addEventListener('submit',event=>{event.preventDefault();search(homeInput.value);});
+document.getElementById('suggestionButton').addEventListener('click',event=>{event.preventDefault();search(targetTerm);});
+homeInput.addEventListener('input',()=>{suggestion.style.display='none';});
+['resultForm1','resultForm2'].forEach(id=>document.getElementById(id).addEventListener('submit',event=>{
+ event.preventDefault();showScreen('expanded');
+}));
+document.querySelectorAll('[data-popup]').forEach(item=>item.addEventListener('click',event=>{
+ event.preventDefault();event.stopPropagation();if(!popup)return;
+ popup.classList.add('show');if(popupTimer)clearTimeout(popupTimer);
+ popupTimer=setTimeout(()=>popup.classList.remove('show'),1000);
+}));
+const loader=document.getElementById('initialLoader');
+if (loader) setTimeout(()=>{loader.classList.add('hide');setTimeout(()=>loader.remove(),270);},700);
+})();
+</script>
+</body>
+</html>

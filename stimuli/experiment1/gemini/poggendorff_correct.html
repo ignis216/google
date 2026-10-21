@@ -1,0 +1,689 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Gemini Stimulus Interactive</title>
+<style>
+  :root {
+    --bg: #F0F4F8;
+    --panel: #f1f3f4;
+    --text: #202124;
+    --sub: #5f6368;
+    --muted: #5f6368;
+    --line: #dadce0;
+    --blue: #1a73e8;
+    --signin: #c2e7ff;
+    --font: Roboto, "Noto Sans KR", Arial, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    width: 100%;
+    min-height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  button, input {
+    font-family: inherit;
+  }
+
+  button {
+    border: 0;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    padding: 0;
+  }
+
+  .screen {
+    display: none;
+    min-height: 100vh;
+    background: #fff;
+  }
+
+  .screen.active {
+    display: block;
+  }
+
+  .popup {
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    min-width: 260px;
+    padding: 18px 22px;
+    border-radius: 12px;
+    background: #fff;
+    color: #202124;
+    box-shadow: 0 8px 28px rgba(0,0,0,.18);
+    border: 1px solid #dadce0;
+    text-align: center;
+    font-size: 15px;
+    z-index: 9999;
+    display: none;
+  }
+
+  .popup.show {
+    display: block;
+  }
+
+  .top-title {
+    position: fixed;
+    left: 30px;
+    top: 24px;
+    color: #3c4043;
+    font-size: 21px;
+    font-weight: 300;
+    letter-spacing: -0.2px;
+    z-index: 9;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    line-height: 24px;
+  }
+
+  .signin {
+    position: fixed;
+    top: 17px;
+    right: 22px;
+    height: 46px;
+    padding: 0 24px;
+    border-radius: 24px;
+    background: var(--signin);
+    color: #0b3148;
+    font-size: 14px;
+    font-weight: 500;
+    z-index: 10;
+  }
+
+  .footer {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 14px;
+    color: #5f6368;
+    text-align: center;
+    font-size: 12px;
+    z-index: 6;
+  }
+
+  .footer u {
+    cursor: pointer;
+  }
+
+  /* 초기 화면 */
+  .home-center {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding-bottom: 84px;
+  }
+
+  .home-inner {
+    width: 830px;
+  }
+
+  .greeting {
+    font-size: 36px;
+    font-weight: 500;
+    line-height: 1.3;
+    letter-spacing: -1.2px;
+    margin: 0 0 70px 20px;
+    color: #202124;
+  }
+
+  .input-wrap {
+    width: 830px;
+  }
+
+  .prompt-box {
+    width: 830px;
+    min-height: 128px;
+    border-radius: 34px;
+    background: #f1f3f4;
+    display: flex;
+    align-items: flex-start;
+    padding: 30px 34px;
+    border: 1px solid #e0e0e0;
+  }
+
+  .prompt-box input {
+    width: 100%;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: #202124;
+    font-size: 18px;
+    line-height: 1.4;
+  }
+
+  .prompt-box input::placeholder {
+    color: #5f6368;
+    opacity: 1;
+  }
+
+  .did-you-mean {
+    display: none;
+    margin-top: 14px;
+    padding-left: 34px;
+    color: #5f6368;
+    font-size: 15px;
+    line-height: 1.4;
+  }
+
+  .did-you-mean button {
+    color: #1a73e8;
+    font-size: 15px;
+  }
+
+  .did-you-mean button:hover {
+    text-decoration: underline;
+  }
+
+  /* 결과 화면 */
+  .result-page {
+    min-height: 100vh;
+    padding-top: 128px;
+    padding-bottom: 250px;
+  }
+
+  .conversation {
+    width: 760px;
+    margin: 0 auto;
+  }
+
+  .user-chip-row {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 54px;
+  }
+
+  .user-chip {
+    max-width: 360px;
+    padding: 13px 20px;
+    border-radius: 24px;
+    background: #f1f3f4;
+    color: #202124;
+    font-size: 16px;
+    font-weight: 600;
+  }
+
+  .answer-row {
+    display: grid;
+    grid-template-columns: 34px 1fr;
+    column-gap: 24px;
+    align-items: start;
+  }
+
+  .spark {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+    display: block;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .answer {
+    color: #202124;
+    font-size: 16px;
+    line-height: 1.75;
+    font-weight: 400;
+    word-break: keep-all;
+  }
+
+  .answer p {
+    margin: 0 0 18px;
+  }
+
+  .answer .lead {
+    margin-bottom: 20px;
+  }
+
+  .answer h3 {
+    margin: 34px 0 12px;
+    padding-top: 28px;
+    border-top: 1px solid #dadce0;
+    font-size: 17px;
+    line-height: 1.6;
+    font-weight: 600;
+  }
+.answer ul {
+    margin: 0 0 0 22px;
+    padding: 0;
+  }
+
+  .answer li {
+    margin: 10px 0;
+    padding-left: 4px;
+  }
+
+  .answer-block {
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 800ms ease, transform 800ms ease;
+  }
+
+  .answer-block.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .typing-cursor {
+    display: inline-block;
+    width: 7px;
+    height: 18px;
+    margin-left: 3px;
+    background: #202124;
+    vertical-align: -3px;
+    animation: blink 1s steps(2, start) infinite;
+  }
+
+  @keyframes blink {
+    0%, 45% { opacity: 1; }
+    46%, 100% { opacity: 0; }
+  }
+
+  .bottom-input-area {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 42px;
+    display: flex;
+    justify-content: center;
+    z-index: 5;
+    pointer-events: none;
+  }
+
+  .bottom-input {
+    width: 830px;
+    height: 128px;
+    border-radius: 34px;
+    background: #f1f3f4;
+    color: #5f6368;
+    font-size: 18px;
+    display: flex;
+    align-items: flex-start;
+    padding: 30px 34px;
+    pointer-events: auto;
+    cursor: pointer;
+    border: 1px solid #e0e0e0;
+  }
+
+  @media (max-width: 1100px) {
+    .home-inner,
+    .input-wrap,
+    .prompt-box,
+    .bottom-input {
+    width: 830px;
+    height: 128px;
+    border-radius: 34px;
+    background: #f1f3f4;
+    color: #5f6368;
+    font-size: 18px;
+    display: flex;
+    align-items: flex-start;
+    padding: 30px 34px;
+    pointer-events: auto;
+    cursor: pointer;
+    border: 1px solid #e0e0e0;
+  }
+
+    .conversation {
+      width: 700px;
+    }
+  }
+
+  .search-term-label {
+    position: fixed;
+    left: 22px;
+    top: 68px;
+    z-index: 50;
+    color: #5f6368;
+    font-size: 13px;
+    line-height: 1.4;
+    background: rgba(255,255,255,.94);
+    border: 1px solid #dadce0;
+    border-radius: 16px;
+    padding: 7px 12px;
+  }
+
+  .search-term-label strong {
+    color: #202124;
+    font-weight: 500;
+  }
+
+  .finish-button {
+    display: none;
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 10000;
+    height: 44px;
+    padding: 0 22px;
+    border-radius: 22px;
+    background: #1a7f42;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,.45);
+  }
+
+  .finish-button.show {
+    display: block;
+  }
+
+
+  .initial-loader {
+    position: fixed;
+    inset: 0;
+    background: #F0F4F8;
+    z-index: 2147483646;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity .25s ease;
+  }
+
+  .initial-loader.hide {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .initial-loader-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .initial-loader-title {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    font-size: 28px;
+    font-weight: 300;
+    color: #3c4043;
+    letter-spacing: -0.2px;
+    line-height: 28px;
+  }
+
+  .loader-gemini-logo {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+    display: block;
+    flex: 0 0 auto;
+    transform: translateY(2px);
+  }
+
+  .initial-loader-title span {
+    display: block;
+    line-height: 28px;
+  }
+
+  .initial-loader-bar {
+    width: 170px;
+    height: 3px;
+    margin-top: 20px;
+    overflow: hidden;
+    border-radius: 3px;
+    background: #d9e2ec;
+  }
+
+  .initial-loader-bar::after {
+    content: "";
+    display: block;
+    width: 56px;
+    height: 100%;
+    border-radius: 3px;
+    background: linear-gradient(90deg, #4285F4, #8E63FF, #EA4335, #FBBC05);
+    animation: loaderMove .8s ease-in-out infinite;
+  }
+
+  @keyframes loaderMove {
+    from { transform: translateX(-60px); }
+    to   { transform: translateX(180px); }
+  }
+
+
+  .top-gemini-logo {
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
+    display: block;
+    flex: 0 0 auto;
+    transform: translateY(1px);
+  }
+
+  .top-title span {
+    display: block;
+    line-height: 24px;
+  }
+
+
+  .section-divider {
+    border: 0;
+    border-top: 1px solid #dadce0;
+    margin: 34px 0 28px;
+    padding: 0;
+    height: 0;
+  }
+
+</style>
+<style>
+
+/* Mobile layout for the poster demonstration */
+@media (max-width: 800px) {
+ html, body {max-width:100%; overflow-x:hidden;}
+ .top-title {left:14px; top:14px; font-size:19px;}
+ .signin {top:10px; right:10px; height:36px; padding:0 14px; font-size:13px;}
+ .search-term-label {left:12px; top:64px; font-size:12px; padding:6px 10px; max-width:calc(100% - 24px);}
+ .home-center {padding:105px 0 95px; min-height:100dvh;}
+ .home-inner, .input-wrap, .prompt-box {width:100% !important; max-width:650px;}
+ .home-inner {padding:0 18px;}
+ .greeting {font-size:clamp(24px,7vw,35px); margin:0 0 38px 0; letter-spacing:-.7px;}
+ .prompt-box {min-height:98px; height:auto!important; border-radius:25px!important; padding:24px 18px!important;}
+ .prompt-box input {font-size:16px;}
+ .did-you-mean {padding-left:14px;}
+ .result-page {padding-top:124px; padding-bottom:165px;}
+ .conversation {width:100% !important; max-width:720px; margin:auto; padding:0 15px;}
+ .user-chip-row {margin-bottom:30px;}
+ .user-chip {max-width:90%; padding:11px 16px; font-size:14px;}
+ .answer-row {grid-template-columns:23px minmax(0,1fr); column-gap:12px;}
+ .spark {width:22px; height:22px;}
+ .answer {font-size:15px; line-height:1.7; overflow-wrap:anywhere;}
+ .answer h3 {font-size:16px; margin:25px 0 12px; padding-top:20px;}
+ .answer ul {margin-left:18px;}
+ .answer p {margin-bottom:16px;}
+ .bottom-input-area {bottom:12px; padding:0 15px;}
+ .bottom-input {width:100% !important; height:68px!important; padding:16px 20px!important; font-size:15px!important; border-radius:23px!important;}
+ .result-page .footer {display:none;}
+ .footer {font-size:10px; bottom:5px;}
+}
+
+
+/* Presentation navigation: added separately, not part of original experiments */
+.poster-demo-back {position:fixed; left:12px; bottom:14px; z-index:9500; background:#17324f; color:#fff;
+ padding:11px 16px; border-radius:999px; box-shadow:0 2px 12px #0003; font:600 13px/1.3 Arial,'Noto Sans KR',sans-serif;
+ text-decoration:none; display:block; max-width:calc(100% - 24px);}
+.poster-demo-back:hover,.poster-demo-back:focus {background:#294b6e; color:#fff;}
+@media (max-width:800px) { .poster-demo-back {left:10px; bottom:10px; font-size:12px; padding:10px 13px;} }
+
+</style>
+</head>
+
+<body>
+<div id="popup" class="popup">연결할 수 없습니다</div>
+<div id="initialLoader" class="initial-loader">
+  <div class="initial-loader-inner">
+    <div class="initial-loader-title">
+      <img class="loader-gemini-logo" src="../../../assets/gemini-logo.png" alt="Gemini">
+      <span>Gemini</span>
+    </div>
+    <div class="initial-loader-bar"></div>
+  </div>
+</div>
+
+
+<div class="top-title" data-popup data-click="gemini_logo">
+  <img class="top-gemini-logo" src="../../../assets/gemini-logo.png" alt="">
+  <span>Gemini</span>
+</div>
+<button class="signin" data-popup data-click="signin">Sign in</button>
+
+<section id="home" class="screen active">
+  <div class="search-term-label">검색어: <strong>포겐도르프 착시</strong></div>
+  <main class="home-center">
+    <div class="home-inner">
+      <h1 class="greeting">안녕하세요.<br>무엇이든 질문해 주세요.</h1>
+
+      <div class="input-wrap">
+        <form class="prompt-box" id="homeForm">
+          <input id="homeQuery" type="text" placeholder="Ask Gemini" autocomplete="off" />
+        </form>
+
+        <div id="suggestion" class="did-you-mean">
+          Did you mean <button type="button" id="suggestionButton">포겐도르프 착시</button>?
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div class="footer">
+    <u data-popup data-click="footer_google_terms">Google Terms</u> and the <u data-popup data-click="footer_privacy_policy">Privacy Policy</u> apply. AI responses may include mistakes. <u data-popup>Learn more</u>
+  </div>
+</section>
+
+<section id="result" class="screen result-page">
+  <main class="conversation">
+    <div class="user-chip-row">
+      <div class="user-chip" id="userQueryChip">포겐도르프 착시</div>
+    </div>
+
+    <div class="answer-row">
+      <img class="spark" src="../../../assets/gemini-logo.png" alt="">
+
+      <article class="answer">
+        <p class="lead answer-block">포겐도르프 착시(Poggendorff Illusion)는 대각선 일부가 평행한 막대나 도형에 의해 가려질 때, 실제로는 일직선상에 있는 선분들이 서로 어긋나 보이는 기하학적 착시 현상입니다. 관찰자는 가려진 부분을 기준으로 선의 연속 위치를 잘못 판단하게 되며, 이는 시각 체계가 선의 방향과 공간적 관계를 해석하는 과정에서 발생합니다.</p>
+
+        <h3 class="answer-block">1. 포겐도르프 착시의 주요 특징</h3>
+        <ul class="answer-block">
+          <li>가려진 대각선의 두 부분이 실제로는 같은 직선상에 있어도 서로 맞지 않는 것처럼 보임.</li>
+          <li>평행한 경계선이나 가림막이 선분의 연속성 판단에 영향을 줌.</li>
+          <li>물리적 자극은 변하지 않지만, 시각적 맥락 때문에 위치와 방향을 다르게 지각함.</li>
+        </ul>
+
+        <h3 class="answer-block">2. 왜 발생하는가?</h3>
+        <p class="answer-block">포겐도르프 착시의 원인은 하나의 요인으로만 설명되기보다는 선의 각도, 가림막의 폭, 주변 도형의 방향성 등 여러 시각적 단서가 함께 작용하는 것으로 이해됩니다.</p>
+
+        <ul class="answer-block">
+          <li>시각 체계는 가려진 선분의 연속성을 추정할 때 주변 경계선의 영향을 받음.</li>
+          <li>대각선과 평행선이 만드는 기하학적 맥락이 위치 판단을 왜곡할 수 있음.</li>
+          <li>선분이 실제로 이어지는 지점보다 위나 아래로 치우쳐 보이는 지각적 오차가 나타남.</li>
+        </ul>
+
+        <h3 class="answer-block">3. 지각심리학에서의 의미</h3>
+        <ul class="answer-block">
+          <li>포겐도르프 착시는 인간의 시각 체계가 단순히 망막에 맺힌 정보를 그대로 받아들이지 않음을 보여줌.</li>
+          <li>공간 관계, 방향, 가림 정보를 해석하는 과정에서 지각적 추론이 개입될 수 있음을 보여주는 사례임.</li>
+          <li>기하학적 착시 연구에서 선의 연속성 판단과 공간 지각을 설명하는 대표적 현상으로 활용됨.</li>
+        </ul>
+
+        <hr class="answer-block section-divider">
+
+        <p class="answer-block">포겐도르프 착시는 단조로운 환경에서 주의가 외부 자극에 더 잘 집중되어 감각 탐지 능력이 향상되는 과정을 보여주는 대표적인 지각 현상입니다.</p>
+        <span id="typingCursor" class="typing-cursor" aria-hidden="true"></span>
+      </article>
+    </div>
+  </main>
+
+  <div class="bottom-input-area">
+    <div class="bottom-input" data-popup>Ask Gemini</div>
+  </div>
+
+  <div class="footer">
+    AI responses may include mistakes. <u data-popup>Learn more</u>
+  </div>
+</section>
+
+
+
+
+
+
+<a class="poster-demo-back" href="../../../experiment1/gemini/index.html" aria-label="자극 선택 페이지로 돌아가기">← 자극 목록</a>
+<script>
+(function () {
+'use strict';
+const targetTerm = "포겐도르프 착시";
+const home = document.getElementById('home');
+const result = document.getElementById('result');
+const homeInput = document.getElementById('homeQuery');
+const suggestion = document.getElementById('suggestion');
+const popup = document.getElementById('popup');
+const queryChip = document.getElementById('userQueryChip');
+const cursor = document.getElementById('typingCursor');
+let popupTimer = null, typingTimer = null;
+function normalize(value) { return String(value || '').trim().replace(/\s+/g, ' '); }
+function showScreen(id) {
+  home.classList.toggle('active', id === 'home');
+  result.classList.toggle('active', id === 'result');
+  window.scrollTo(0,0);
+  if (id === 'result') showTyping();
+}
+function showTyping() {
+  if (typingTimer) clearTimeout(typingTimer);
+  const blocks = Array.from(document.querySelectorAll('.answer-block'));
+  blocks.forEach(block => block.classList.remove('visible'));
+  if (cursor) cursor.style.display = 'inline-block';
+  let index = 0;
+  function showNext() {
+    if (index >= blocks.length) { if (cursor) cursor.style.display = 'none'; return; }
+    blocks[index].classList.add('visible'); index += 1;
+    typingTimer = setTimeout(showNext, 450);
+  }
+  typingTimer = setTimeout(showNext, 450);
+}
+function acceptSearch(value) {
+  if (normalize(value) !== targetTerm) { suggestion.style.display='block'; return; }
+  homeInput.value=targetTerm;
+  if (queryChip) queryChip.textContent=targetTerm;
+  suggestion.style.display='none';
+  showScreen('result');
+}
+document.getElementById('homeForm').addEventListener('submit', event => {
+  event.preventDefault(); acceptSearch(homeInput.value);
+});
+document.getElementById('suggestionButton').addEventListener('click', event => {
+  event.preventDefault(); acceptSearch(targetTerm);
+});
+homeInput.addEventListener('input', () => suggestion.style.display='none');
+document.querySelectorAll('[data-popup]').forEach(item => item.addEventListener('click', event => {
+  event.preventDefault(); event.stopPropagation();
+  if (!popup) return;
+  popup.classList.add('show');
+  if (popupTimer) clearTimeout(popupTimer);
+  popupTimer=setTimeout(()=> popup.classList.remove('show'), 1000);
+}));
+const loader=document.getElementById('initialLoader');
+if (loader) setTimeout(() => {loader.classList.add('hide');setTimeout(()=>loader.remove(),270);}, 700);
+})();
+</script>
+</body>
+</html>
